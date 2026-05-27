@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Minijob</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        input {
+            margin: 5px;
+            padding: 6px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 6px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        .status-offen { color: red; font-weight: bold; }
+        .status-in-arbeit { color: orange; font-weight: bold; }
+        .status-erledigt { color: green; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+<h2>Aufgaben</h2>
+
+<input id="taskText" placeholder="Aufgabe">
+<button onclick="addTask()">Hinzufügen</button>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Text</th>
+        <th>Status</th>
+        <th>Aktion</th>
+    </tr>
+    </thead>
+    <tbody id="taskTable"></tbody>
+</table>
+
+<hr>
+
+<h2>Arbeitszeiten</h2>
+
+<input id="date" placeholder="Datum">
+<input id="from" placeholder="Von (HH:MM)">
+<input id="to" placeholder="Bis (HH:MM)">
+<button onclick="addWork()">Speichern</button>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Datum</th>
+        <th>Von</th>
+        <th>Bis</th>
+        <th>Dauer</th>
+        <th>Aktion</th>
+    </tr>
+    </thead>
+    <tbody id="workTable"></tbody>
+</table>
+
+<script>
+
+    const PASSWORD = "1234";
+
+    function checkPassword() {
+        return prompt("Passwort eingeben:") === PASSWORD;
+    }
+
+    function confirmDelete() {
+        return confirm("Wirklich löschen?");
+    }
+
+    /* ================= AUFGABEN ================= */
+
+    async function loadTasks() {
+        let res = await fetch("/aufgaben");
+        let data = await res.json();
+
+        let html = "";
+
+        data.forEach((t, i) => {
+            html += `
+            <tr>
+                <td>${i}</td>
+                <td>${t.text}</td>
+
+                <td class="status-${t.status.replace(' ', '-')}">
+                    ${t.status}
+                </td>
+
+                <td>
+                    <button onclick="setStatus(${i}, 'offen')">Offen</button>
+                    <button onclick="setStatus(${i}, 'in arbeit')">In Arbeit</button>
+                    <button onclick="setStatus(${i}, 'erledigt')">Erledigt</button>
+                    <button onclick="deleteTask(${i})">Löschen</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("taskTable").innerHTML = html;
+    }
+
+    async function addTask() {
+        let text = document.getElementById("taskText").value;
+
+        await fetch("/aufgabe", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text: text})
+        });
+
+        loadTasks();
+    }
+
+    async function setStatus(i, status) {
+        await fetch(`/aufgabe/status?index=${i}&status=${status}`, {
+            method: "POST"
+        });
+
+        loadTasks();
+    }
+
+    async function deleteTask(i) {
+
+        if (!confirmDelete()) return;
+
+        await fetch(`/aufgabe?index=${i}`, {
+            method: "DELETE"
+        });
+
+        loadTasks();
+    }
+
+    /* ================= ARBEITSZEITEN ================= */
+
+    async function loadWork() {
+        let res = await fetch("/arbeiten");
+        let data = await res.json();
+
+        let html = "";
+
+        data.forEach((w, i) => {
+            html += `
+            <tr>
+                <td>${i}</td>
+                <td>${w.datum}</td>
+                <td>${w.von}</td>
+                <td>${w.bis}</td>
+                <td>${w.stunden}h ${w.minuten}min</td>
+
+                <td>
+                    <button onclick="deleteWork(${i})">Löschen</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("workTable").innerHTML = html;
+    }
+
+    async function addWork() {
+
+        if (!checkPassword()) {
+            alert("Falsches Passwort!");
+            return;
+        }
+
+        let body = {
+            datum: document.getElementById("date").value,
+            von: document.getElementById("from").value,
+            bis: document.getElementById("to").value
+        };
+
+        await fetch("/arbeit", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        loadWork();
+    }
+
+    async function deleteWork(i) {
+
+        if (!checkPassword()) {
+            alert("Falsches Passwort!");
+            return;
+        }
+
+        if (!confirmDelete()) return;
+
+        await fetch(`/arbeit?index=${i}`, {
+            method: "DELETE"
+        });
+
+        loadWork();
+    }
+
+    /* ================= START ================= */
+
+    loadTasks();
+    loadWork();
+
+</script>
+
+</body>
+</html>

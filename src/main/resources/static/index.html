@@ -2,226 +2,163 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Minijob</title>
+    <title>Minijob Manager</title>
 
     <style>
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
             margin: 20px;
         }
 
-        input {
-            margin: 5px;
-            padding: 6px;
-        }
-
-        button {
-            margin: 5px;
-            padding: 6px;
-            cursor: pointer;
+        h1 {
+            display: none; /* Überschrift entfernt wie gewünscht */
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            table-layout: fixed;
         }
 
         th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            word-wrap: break-word;
         }
 
-        .status-offen { color: red; font-weight: bold; }
-        .status-in-arbeit { color: orange; font-weight: bold; }
-        .status-erledigt { color: green; font-weight: bold; }
+        th {
+            background: #f5f5f5;
+        }
+
+        /* Aktionen Spalte */
+        .actions-col {
+            width: 180px;
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            margin: 3px 0;
+            padding: 6px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .edit-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        /* Status Farben */
+        .status-offen {
+            background: #ffdddd;
+        }
+
+        .status-inarbeit {
+            background: #ffe5cc;
+        }
+
+        .status-erledigt {
+            background: #ddffdd;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            body {
+                margin: 10px;
+            }
+
+            th, td {
+                font-size: 13px;
+                padding: 6px;
+            }
+
+            .actions-col {
+                width: 140px;
+            }
+
+            button {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 
 <body>
 
-<h2>Aufgaben</h2>
-
-<input id="taskText" placeholder="Aufgabe">
-<button onclick="addTask()">Hinzufügen</button>
+<h1>Minijob Manager</h1>
 
 <table>
     <thead>
     <tr>
-        <th>ID</th>
-        <th>Text</th>
+        <th>Aufgabe</th>
         <th>Status</th>
-        <th>Aktion</th>
+        <th>Zeit</th>
+        <th class="actions-col">Aktionen</th>
     </tr>
     </thead>
-    <tbody id="taskTable"></tbody>
-</table>
 
-<hr>
-
-<h2>Arbeitszeiten</h2>
-
-<input id="date" placeholder="Datum">
-<input id="from" placeholder="Von (HH:MM)">
-<input id="to" placeholder="Bis (HH:MM)">
-<button onclick="addWork()">Speichern</button>
-
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Datum</th>
-        <th>Von</th>
-        <th>Bis</th>
-        <th>Dauer</th>
-        <th>Aktion</th>
-    </tr>
-    </thead>
-    <tbody id="workTable"></tbody>
+    <tbody id="taskTable">
+    <!-- Hier werden deine Aufgaben reingeladen -->
+    </tbody>
 </table>
 
 <script>
+    // Beispiel Daten (kannst du später durch Backend ersetzen)
+    const tasks = [
+        {name: "Regale auffüllen", status: "offen", time: "2h"},
+        {name: "Kasse", status: "inarbeit", time: "1h"},
+        {name: "Putzen", status: "erledigt", time: "3h"}
+    ];
 
-    const PASSWORD = "1234";
+    function render() {
+        const table = document.getElementById("taskTable");
+        table.innerHTML = "";
 
-    function checkPassword() {
-        return prompt("Passwort eingeben:") === PASSWORD;
-    }
+        tasks.forEach((t, i) => {
 
-    function confirmDelete() {
-        return confirm("Wirklich löschen?");
-    }
+            let statusClass = "";
+            if (t.status === "offen") statusClass = "status-offen";
+            if (t.status === "inarbeit") statusClass = "status-inarbeit";
+            if (t.status === "erledigt") statusClass = "status-erledigt";
 
-    /* ================= AUFGABEN ================= */
-
-    async function loadTasks() {
-        let res = await fetch("/aufgaben");
-        let data = await res.json();
-
-        let html = "";
-
-        data.forEach((t, i) => {
-            html += `
-            <tr>
-                <td>${i}</td>
-                <td>${t.text}</td>
-
-                <td class="status-${t.status.replace(' ', '-')}">
-                    ${t.status}
-                </td>
-
-                <td>
-                    <button onclick="setStatus(${i}, 'offen')">Offen</button>
-                    <button onclick="setStatus(${i}, 'in arbeit')">In Arbeit</button>
-                    <button onclick="setStatus(${i}, 'erledigt')">Erledigt</button>
-                    <button onclick="deleteTask(${i})">Löschen</button>
-                </td>
-            </tr>`;
+            table.innerHTML += `
+                <tr class="${statusClass}">
+                    <td>${t.name}</td>
+                    <td>${t.status}</td>
+                    <td>${t.time}</td>
+                    <td class="actions-col">
+                        <button class="edit-btn" onclick="editTask(${i})">Ändern</button>
+                        <button class="delete-btn" onclick="deleteTask(${i})">Löschen</button>
+                    </td>
+                </tr>
+            `;
         });
-
-        document.getElementById("taskTable").innerHTML = html;
     }
 
-    async function addTask() {
-        let text = document.getElementById("taskText").value;
-
-        await fetch("/aufgabe", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({text: text})
-        });
-
-        loadTasks();
-    }
-
-    async function setStatus(i, status) {
-        await fetch(`/aufgabe/status?index=${i}&status=${status}`, {
-            method: "POST"
-        });
-
-        loadTasks();
-    }
-
-    async function deleteTask(i) {
-
-        if (!confirmDelete()) return;
-
-        await fetch(`/aufgabe?index=${i}`, {
-            method: "DELETE"
-        });
-
-        loadTasks();
-    }
-
-    /* ================= ARBEITSZEITEN ================= */
-
-    async function loadWork() {
-        let res = await fetch("/arbeiten");
-        let data = await res.json();
-
-        let html = "";
-
-        data.forEach((w, i) => {
-            html += `
-            <tr>
-                <td>${i}</td>
-                <td>${w.datum}</td>
-                <td>${w.von}</td>
-                <td>${w.bis}</td>
-                <td>${w.stunden}h ${w.minuten}min</td>
-
-                <td>
-                    <button onclick="deleteWork(${i})">Löschen</button>
-                </td>
-            </tr>`;
-        });
-
-        document.getElementById("workTable").innerHTML = html;
-    }
-
-    async function addWork() {
-
-        if (!checkPassword()) {
-            alert("Falsches Passwort!");
-            return;
+    function deleteTask(i) {
+        if (confirm("Wirklich löschen?")) {
+            tasks.splice(i, 1);
+            render();
         }
-
-        let body = {
-            datum: document.getElementById("date").value,
-            von: document.getElementById("from").value,
-            bis: document.getElementById("to").value
-        };
-
-        await fetch("/arbeit", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
-
-        loadWork();
     }
 
-    async function deleteWork(i) {
-
-        if (!checkPassword()) {
-            alert("Falsches Passwort!");
-            return;
+    function editTask(i) {
+        let newName = prompt("Neue Aufgabe:", tasks[i].name);
+        if (newName) {
+            tasks[i].name = newName;
+            render();
         }
-
-        if (!confirmDelete()) return;
-
-        await fetch(`/arbeit?index=${i}`, {
-            method: "DELETE"
-        });
-
-        loadWork();
     }
 
-    /* ================= START ================= */
-
-    loadTasks();
-    loadWork();
-
+    render();
 </script>
 
 </body>

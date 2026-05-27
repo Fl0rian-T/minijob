@@ -35,6 +35,31 @@
         .status-offen { color: red; font-weight: bold; }
         .status-in-arbeit { color: orange; font-weight: bold; }
         .status-erledigt { color: green; font-weight: bold; }
+
+        /* 📱 Mobile Fix */
+        @media (max-width: 768px) {
+            body {
+                margin: 10px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 6px;
+            }
+
+            button {
+                padding: 5px;
+                font-size: 12px;
+            }
+
+            input {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
     </style>
 </head>
 
@@ -100,10 +125,13 @@
 
         let html = "";
 
-        data.forEach((t, i) => {
+        data.slice().reverse().forEach((t, i) => {
+
+            let realIndex = data.length - 1 - i;
+
             html += `
             <tr>
-                <td>${i}</td>
+                <td>${realIndex}</td>
                 <td>${t.text}</td>
 
                 <td class="status-${t.status.replace(' ', '-')}">
@@ -111,10 +139,10 @@
                 </td>
 
                 <td>
-                    <button onclick="setStatus(${i}, 'offen')">Offen</button>
-                    <button onclick="setStatus(${i}, 'in arbeit')">In Arbeit</button>
-                    <button onclick="setStatus(${i}, 'erledigt')">Erledigt</button>
-                    <button onclick="deleteTask(${i})">Löschen</button>
+                    <button onclick="setStatus(${realIndex}, 'offen')">Offen</button>
+                    <button onclick="setStatus(${realIndex}, 'in arbeit')">In Arbeit</button>
+                    <button onclick="setStatus(${realIndex}, 'erledigt')">Erledigt</button>
+                    <button onclick="deleteTask(${realIndex})">Löschen</button>
                 </td>
             </tr>`;
         });
@@ -161,17 +189,20 @@
 
         let html = "";
 
-        data.forEach((w, i) => {
+        data.slice().reverse().forEach((w, i) => {
+
+            let realIndex = data.length - 1 - i;
+
             html += `
             <tr>
-                <td>${i}</td>
+                <td>${realIndex}</td>
                 <td>${w.datum}</td>
                 <td>${w.von}</td>
                 <td>${w.bis}</td>
                 <td>${w.stunden}h ${w.minuten}min</td>
 
                 <td>
-                    <button onclick="deleteWork(${i})">Löschen</button>
+                    <button onclick="deleteWork(${realIndex})">Löschen</button>
                 </td>
             </tr>`;
         });

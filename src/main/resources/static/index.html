@@ -1,259 +1,106 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <title>Minijob</title>
+<style>
+    body {
+        font-family: Arial;
+        margin: 20px;
+    }
 
-    <style>
+    input {
+        margin: 5px;
+        padding: 6px;
+    }
+
+    button {
+        margin: 5px;
+        padding: 6px;
+        cursor: pointer;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .status-offen { color: red; font-weight: bold; }
+    .status-in-arbeit { color: orange; font-weight: bold; }
+    .status-erledigt { color: green; font-weight: bold; }
+
+    /* ================= MOBILE VIEW ================= */
+    @media (max-width: 768px) {
+
         body {
-            font-family: Arial;
-            margin: 20px;
+            margin: 10px;
+        }
+
+        h2 {
+            font-size: 18px;
         }
 
         input {
-            margin: 5px;
-            padding: 6px;
+            width: 100%;
+            margin: 5px 0;
         }
 
         button {
-            margin: 5px;
-            padding: 6px;
-            cursor: pointer;
+            width: 100%;
+            margin: 5px 0;
         }
 
         table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+            border: 0;
         }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
+        thead {
+            display: none; /* Kopfzeile weg */
         }
 
-        .status-offen { color: red; font-weight: bold; }
-        .status-in-arbeit { color: orange; font-weight: bold; }
-        .status-erledigt { color: green; font-weight: bold; }
-
-        /* 📱 Mobile Fix */
-        @media (max-width: 768px) {
-            body {
-                margin: 10px;
-            }
-
-            table {
-                font-size: 12px;
-            }
-
-            th, td {
-                padding: 6px;
-            }
-
-            button {
-                padding: 5px;
-                font-size: 12px;
-            }
-
-            input {
-                width: 100%;
-                margin: 5px 0;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-<h2>Aufgaben</h2>
-
-<input id="taskText" placeholder="Aufgabe">
-<button onclick="addTask()">Hinzufügen</button>
-
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Text</th>
-        <th>Status</th>
-        <th>Aktion</th>
-    </tr>
-    </thead>
-    <tbody id="taskTable"></tbody>
-</table>
-
-<hr>
-
-<h2>Arbeitszeiten</h2>
-
-<input id="date" placeholder="Datum">
-<input id="from" placeholder="Von (HH:MM)">
-<input id="to" placeholder="Bis (HH:MM)">
-<button onclick="addWork()">Speichern</button>
-
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Datum</th>
-        <th>Von</th>
-        <th>Bis</th>
-        <th>Dauer</th>
-        <th>Aktion</th>
-    </tr>
-    </thead>
-    <tbody id="workTable"></tbody>
-</table>
-
-<script>
-
-    const PASSWORD = "1234";
-
-    function checkPassword() {
-        return prompt("Passwort eingeben:") === PASSWORD;
-    }
-
-    function confirmDelete() {
-        return confirm("Wirklich löschen?");
-    }
-
-    /* ================= AUFGABEN ================= */
-
-    async function loadTasks() {
-        let res = await fetch("/aufgaben");
-        let data = await res.json();
-
-        let html = "";
-
-        data.slice().reverse().forEach((t, i) => {
-
-            let realIndex = data.length - 1 - i;
-
-            html += `
-            <tr>
-                <td>${realIndex}</td>
-                <td>${t.text}</td>
-
-                <td class="status-${t.status.replace(' ', '-')}">
-                    ${t.status}
-                </td>
-
-                <td>
-                    <button onclick="setStatus(${realIndex}, 'offen')">Offen</button>
-                    <button onclick="setStatus(${realIndex}, 'in arbeit')">In Arbeit</button>
-                    <button onclick="setStatus(${realIndex}, 'erledigt')">Erledigt</button>
-                    <button onclick="deleteTask(${realIndex})">Löschen</button>
-                </td>
-            </tr>`;
-        });
-
-        document.getElementById("taskTable").innerHTML = html;
-    }
-
-    async function addTask() {
-        let text = document.getElementById("taskText").value;
-
-        await fetch("/aufgabe", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({text: text})
-        });
-
-        loadTasks();
-    }
-
-    async function setStatus(i, status) {
-        await fetch(`/aufgabe/status?index=${i}&status=${status}`, {
-            method: "POST"
-        });
-
-        loadTasks();
-    }
-
-    async function deleteTask(i) {
-
-        if (!confirmDelete()) return;
-
-        await fetch(`/aufgabe?index=${i}`, {
-            method: "DELETE"
-        });
-
-        loadTasks();
-    }
-
-    /* ================= ARBEITSZEITEN ================= */
-
-    async function loadWork() {
-        let res = await fetch("/arbeiten");
-        let data = await res.json();
-
-        let html = "";
-
-        data.slice().reverse().forEach((w, i) => {
-
-            let realIndex = data.length - 1 - i;
-
-            html += `
-            <tr>
-                <td>${realIndex}</td>
-                <td>${w.datum}</td>
-                <td>${w.von}</td>
-                <td>${w.bis}</td>
-                <td>${w.stunden}h ${w.minuten}min</td>
-
-                <td>
-                    <button onclick="deleteWork(${realIndex})">Löschen</button>
-                </td>
-            </tr>`;
-        });
-
-        document.getElementById("workTable").innerHTML = html;
-    }
-
-    async function addWork() {
-
-        if (!checkPassword()) {
-            alert("Falsches Passwort!");
-            return;
+        tr {
+            display: block;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fafafa;
         }
 
-        let body = {
-            datum: document.getElementById("date").value,
-            von: document.getElementById("from").value,
-            bis: document.getElementById("to").value
-        };
-
-        await fetch("/arbeit", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
-
-        loadWork();
-    }
-
-    async function deleteWork(i) {
-
-        if (!checkPassword()) {
-            alert("Falsches Passwort!");
-            return;
+        td {
+            display: flex;
+            justify-content: space-between;
+            border: none;
+            border-bottom: 1px solid #eee;
+            padding: 6px 0;
         }
 
-        if (!confirmDelete()) return;
+        td:last-child {
+            border-bottom: none;
+        }
 
-        await fetch(`/arbeit?index=${i}`, {
-            method: "DELETE"
-        });
+        td::before {
+            font-weight: bold;
+        }
 
-        loadWork();
+        /* Labels für Aufgaben */
+        #taskTable td:nth-child(1)::before { content: "ID: "; }
+        #taskTable td:nth-child(2)::before { content: "Text: "; }
+        #taskTable td:nth-child(3)::before { content: "Status: "; }
+        #taskTable td:nth-child(4)::before { content: "Aktion: "; }
+
+        /* Labels für Arbeitszeiten */
+        #workTable td:nth-child(1)::before { content: "ID: "; }
+        #workTable td:nth-child(2)::before { content: "Datum: "; }
+        #workTable td:nth-child(3)::before { content: "Von: "; }
+        #workTable td:nth-child(4)::before { content: "Bis: "; }
+        #workTable td:nth-child(5)::before { content: "Dauer: "; }
+        #workTable td:nth-child(6)::before { content: "Aktion: "; }
+
+        button {
+            font-size: 14px;
+        }
     }
-
-    /* ================= START ================= */
-
-    loadTasks();
-    loadWork();
-
-</script>
-
-</body>
-</html>
+</style>

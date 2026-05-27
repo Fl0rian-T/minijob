@@ -1,106 +1,261 @@
-<style>
-    body {
-        font-family: Arial;
-        margin: 20px;
-    }
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Minijob</title>
 
-    input {
-        margin: 5px;
-        padding: 6px;
-    }
-
-    button {
-        margin: 5px;
-        padding: 6px;
-        cursor: pointer;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-
-    th, td {
-        border: 1px solid #ccc;
-        padding: 8px;
-        text-align: center;
-    }
-
-    .status-offen { color: red; font-weight: bold; }
-    .status-in-arbeit { color: orange; font-weight: bold; }
-    .status-erledigt { color: green; font-weight: bold; }
-
-    /* ================= MOBILE VIEW ================= */
-    @media (max-width: 768px) {
-
+    <style>
         body {
-            margin: 10px;
-        }
-
-        h2 {
-            font-size: 18px;
+            font-family: Arial;
+            margin: 20px;
+            color: black;
+            background: white;
         }
 
         input {
-            width: 100%;
-            margin: 5px 0;
+            margin: 5px;
+            padding: 6px;
         }
 
         button {
-            width: 100%;
-            margin: 5px 0;
+            margin: 5px;
+            padding: 6px;
+            cursor: pointer;
         }
 
         table {
-            border: 0;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
 
-        thead {
-            display: none; /* Kopfzeile weg */
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
         }
 
-        tr {
-            display: block;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 10px;
-            background: #fafafa;
+        .status-offen { color: red; font-weight: bold; }
+        .status-in-arbeit { color: orange; font-weight: bold; }
+        .status-erledigt { color: green; font-weight: bold; }
+
+        /* Mobile nur leicht angepasst */
+        @media (max-width: 768px) {
+            body {
+                margin: 10px;
+            }
+
+            input {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 6px;
+            }
         }
+    </style>
+</head>
 
-        td {
-            display: flex;
-            justify-content: space-between;
-            border: none;
-            border-bottom: 1px solid #eee;
-            padding: 6px 0;
-        }
+<body>
 
-        td:last-child {
-            border-bottom: none;
-        }
+<h2>Aufgaben</h2>
 
-        td::before {
-            font-weight: bold;
-        }
+<input id="taskText" placeholder="Aufgabe">
+<button onclick="addTask()">Hinzufügen</button>
 
-        /* Labels für Aufgaben */
-        #taskTable td:nth-child(1)::before { content: "ID: "; }
-        #taskTable td:nth-child(2)::before { content: "Text: "; }
-        #taskTable td:nth-child(3)::before { content: "Status: "; }
-        #taskTable td:nth-child(4)::before { content: "Aktion: "; }
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Text</th>
+        <th>Status</th>
+        <th>Aktion</th>
+    </tr>
+    </thead>
+    <tbody id="taskTable"></tbody>
+</table>
 
-        /* Labels für Arbeitszeiten */
-        #workTable td:nth-child(1)::before { content: "ID: "; }
-        #workTable td:nth-child(2)::before { content: "Datum: "; }
-        #workTable td:nth-child(3)::before { content: "Von: "; }
-        #workTable td:nth-child(4)::before { content: "Bis: "; }
-        #workTable td:nth-child(5)::before { content: "Dauer: "; }
-        #workTable td:nth-child(6)::before { content: "Aktion: "; }
+<hr>
 
-        button {
-            font-size: 14px;
-        }
+<h2>Arbeitszeiten</h2>
+
+<input id="date" placeholder="Datum">
+<input id="from" placeholder="Von (HH:MM)">
+<input id="to" placeholder="Bis (HH:MM)">
+<button onclick="addWork()">Speichern</button>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Datum</th>
+        <th>Von</th>
+        <th>Bis</th>
+        <th>Dauer</th>
+        <th>Aktion</th>
+    </tr>
+    </thead>
+    <tbody id="workTable"></tbody>
+</table>
+
+<script>
+
+    const PASSWORD = "1234";
+
+    function checkPassword() {
+        return prompt("Passwort eingeben:") === PASSWORD;
     }
-</style>
+
+    function confirmDelete() {
+        return confirm("Wirklich löschen?");
+    }
+
+    /* ================= AUFGABEN ================= */
+
+    async function loadTasks() {
+        let res = await fetch("/aufgaben");
+        let data = await res.json();
+
+        let html = "";
+
+        data.slice().reverse().forEach((t, i) => {
+
+            let realIndex = data.length - 1 - i;
+
+            html += `
+            <tr>
+                <td>${realIndex}</td>
+                <td>${t.text}</td>
+
+                <td class="status-${t.status.replace(' ', '-')}">
+                    ${t.status}
+                </td>
+
+                <td>
+                    <button onclick="setStatus(${realIndex}, 'offen')">Offen</button>
+                    <button onclick="setStatus(${realIndex}, 'in arbeit')">In Arbeit</button>
+                    <button onclick="setStatus(${realIndex}, 'erledigt')">Erledigt</button>
+                    <button onclick="deleteTask(${realIndex})">Löschen</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("taskTable").innerHTML = html;
+    }
+
+    async function addTask() {
+        let text = document.getElementById("taskText").value;
+
+        await fetch("/aufgabe", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text: text})
+        });
+
+        loadTasks();
+    }
+
+    async function setStatus(i, status) {
+        await fetch(`/aufgabe/status?index=${i}&status=${status}`, {
+            method: "POST"
+        });
+
+        loadTasks();
+    }
+
+    async function deleteTask(i) {
+        if (!confirmDelete()) return;
+
+        await fetch(`/aufgabe?index=${i}`, {
+            method: "DELETE"
+        });
+
+        loadTasks();
+    }
+
+    /* ================= ARBEITSZEITEN ================= */
+
+    async function loadWork() {
+        let res = await fetch("/arbeiten");
+        let data = await res.json();
+
+        let html = "";
+
+        data.slice().reverse().forEach((w, i) => {
+
+            let realIndex = data.length - 1 - i;
+
+            html += `
+            <tr>
+                <td>${realIndex}</td>
+                <td>${w.datum}</td>
+                <td>${w.von}</td>
+                <td>${w.bis}</td>
+                <td>${w.stunden}h ${w.minuten}min</td>
+
+                <td>
+                    <button onclick="deleteWork(${realIndex})">Löschen</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("workTable").innerHTML = html;
+    }
+
+    async function addWork() {
+
+        if (!checkPassword()) {
+            alert("Falsches Passwort!");
+            return;
+        }
+
+        let body = {
+            datum: document.getElementById("date").value,
+            von: document.getElementById("from").value,
+            bis: document.getElementById("to").value
+        };
+
+        await fetch("/arbeit", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        loadWork();
+    }
+
+    async function deleteWork(i) {
+
+        if (!checkPassword()) {
+            alert("Falsches Passwort!");
+            return;
+        }
+
+        if (!confirmDelete()) return;
+
+        await fetch(`/arbeit?index=${i}`, {
+            method: "DELETE"
+        });
+
+        loadWork();
+    }
+
+    /* ================= START ================= */
+
+    loadTasks();
+    loadWork();
+
+</script>
+
+</body>
+</html>

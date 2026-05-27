@@ -39,28 +39,45 @@
         .status-in-arbeit { color: orange; font-weight: bold; }
         .status-erledigt { color: green; font-weight: bold; }
 
-        /* Mobile nur leicht angepasst */
+        /* ================= MOBILE ================= */
         @media (max-width: 768px) {
+
             body {
-                margin: 10px;
+                margin: 12px;
+            }
+
+            h2 {
+                font-size: 20px;
             }
 
             input {
                 width: 100%;
-                margin: 5px 0;
+                margin: 8px 0;
+                padding: 14px;
+                font-size: 16px;
+                border-radius: 8px;
+                border: 1px solid #ccc;
+                box-sizing: border-box;
             }
 
             button {
                 width: 100%;
-                margin: 5px 0;
+                margin: 8px 0;
+                padding: 14px;
+                font-size: 16px;
+                border-radius: 8px;
+                cursor: pointer;
             }
 
             table {
-                font-size: 12px;
+                font-size: 14px;
+                display: block;
+                overflow-x: auto;
             }
 
             th, td {
-                padding: 6px;
+                padding: 10px;
+                white-space: nowrap;
             }
         }
     </style>
